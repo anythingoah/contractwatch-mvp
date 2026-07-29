@@ -14,5 +14,8 @@ node_modules/
 .next/
 out/
 
+# TypeScript
+*.tsbuildinfo
+
 # OS cruft
 .DS_Store
