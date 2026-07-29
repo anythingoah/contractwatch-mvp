@@ -33,6 +33,9 @@ jobs:
           node-version: "20"
 
       - run: npm install --package-lock-only
+      - run: pip install pipdeptree
+      - run: pipdeptree
+      - run: pip-audit -r backend/requirements.txt
 
       - run: |
           npm audit --audit-level=high || true
