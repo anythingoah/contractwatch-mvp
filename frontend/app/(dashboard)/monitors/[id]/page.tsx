@@ -26,7 +26,6 @@ export default function MonitorDetailPage() {
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
-    setError("");
     try {
       const [m, c] = await Promise.all([api.getMonitor(id), api.getChanges(id)]);
       setMonitor(m);
@@ -40,7 +39,16 @@ export default function MonitorDetailPage() {
     }
   }, [id, router]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    // The state updates occur after the external API requests resolve.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void load();
+  }, [load]);
+
+  function handleRetry() {
+    setError("");
+    void load();
+  }
 
   async function handleCheckNow() {
     setError("");
@@ -71,7 +79,7 @@ export default function MonitorDetailPage() {
         {error ? (
           <div className="space-y-4">
             <p className="text-red-400">{error}</p>
-            <button onClick={() => void load()} className="border border-border px-4 py-2 rounded-md text-sm">
+            <button onClick={handleRetry} className="border border-border px-4 py-2 rounded-md text-sm">
               Retry
             </button>
           </div>
