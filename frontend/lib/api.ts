@@ -16,6 +16,18 @@ export class ApiError extends Error {
   }
 }
 
+function getErrorDetail(body: unknown): string | null {
+  if (
+    typeof body === "object" &&
+    body !== null &&
+    "detail" in body &&
+    typeof body.detail === "string"
+  ) {
+    return body.detail;
+  }
+  return null;
+}
+
 async function request<T>(path: string, options: RequestInit = {}, timeoutMs = 15000): Promise<T> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -28,19 +40,20 @@ async function request<T>(path: string, options: RequestInit = {}, timeoutMs = 1
       headers: { "Content-Type": "application/json", ...(options.headers as Record<string, string>) },
       signal: controller.signal,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     clearTimeout(timeout);
-    if (err.name === "AbortError") throw new ApiError("Request timed out", 0);
+    if (err instanceof Error && err.name === "AbortError") throw new ApiError("Request timed out", 0);
     throw new ApiError("Network error — check your connection", 0);
   }
   clearTimeout(timeout);
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new ApiError(body.detail || `Request failed: ${res.status}`, res.status);
+    const body: unknown = await res.json().catch(() => null);
+    throw new ApiError(getErrorDetail(body) ?? `Request failed: ${res.status}`, res.status);
   }
   if (res.status === 204) return null as T;
-  return res.json() as Promise<T>;
+  const text = await res.text();
+return text ? JSON.parse(text) as T : (null as T);
 }
 
 // --- Domain types (mirrors backend Pydantic response models) ---

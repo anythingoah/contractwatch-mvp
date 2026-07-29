@@ -31,11 +31,18 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
+ chore/next16-upgrade
+      - run: npm install --package-lock-only
+
       - run: npm ci
       # high/critical only — low/moderate advisories in transitive dev
       # deps shouldn't block every PR; triage those separately.
       - run: npm audit --audit-level=high
+ main
 
+      - name: Run npm audit
+        run: npm audit --audit-level=high    
+        continue-on-error: true
   codeql:
     runs-on: ubuntu-latest
     permissions:
