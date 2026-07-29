@@ -31,7 +31,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - run: npm install --package-lock-only
+      - run: npm ci
       # high/critical only — low/moderate advisories in transitive dev
       # deps shouldn't block every PR; triage those separately.
       - run: npm audit --audit-level=high
