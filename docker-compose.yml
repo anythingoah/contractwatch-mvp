@@ -1,0 +1,59 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: contractwatch
+      POSTGRES_PASSWORD: contractwatch
+      POSTGRES_DB: contractwatch
+    ports:
+      - "5432:5432"
+    volumes:
+      - contractwatch_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U contractwatch"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://contractwatch:contractwatch@db:5432/contractwatch
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  # Optional: split the scheduler out of the API process. Only useful once
+  # you're running multiple `backend` replicas — set RUN_SCHEDULER_IN_APP=false
+  # on the backend service(s) if you enable this, or checks fire twice.
+  # Run with: docker compose --profile worker up worker
+  worker:
+    build: ./backend
+    restart: unless-stopped
+    profiles: ["worker"]
+    command: ["python", "worker.py"]
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://contractwatch:contractwatch@db:5432/contractwatch
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  contractwatch_pgdata:

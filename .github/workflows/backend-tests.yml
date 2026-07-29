@@ -1,0 +1,29 @@
+name: Backend tests
+
+on:
+  pull_request:
+    paths: ["backend/**"]
+  push:
+    branches: [main]
+    paths: ["backend/**"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      # Dummy values so app.core.config.Settings() can construct at import
+      # time — DATABASE_URL is never actually connected to in tests (the db
+      # dependency is overridden with in-memory SQLite, see conftest.py),
+      # but the setting is required and fails fast if unset, same as prod.
+      DATABASE_URL: postgresql://test:test@localhost:5432/test
+      JWT_SECRET: test-only-secret-not-for-production-use
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - run: pytest tests/ -v

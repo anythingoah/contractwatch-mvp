@@ -1,0 +1,54 @@
+name: Security scanning
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    # Catch newly-disclosed CVEs in dependencies that haven't changed —
+    # Dependabot alone only checks when a PR touches the manifest.
+    - cron: "0 6 * * 1"  # every Monday 06:00 UTC
+
+jobs:
+  pip-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pip-audit
+      # -r reads requirements.txt directly, no need to install the whole app
+      - run: pip-audit -r backend/requirements.txt
+
+  npm-audit:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm install --package-lock-only
+      # high/critical only — low/moderate advisories in transitive dev
+      # deps shouldn't block every PR; triage those separately.
+      - run: npm audit --audit-level=high
+
+  codeql:
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+    strategy:
+      matrix:
+        language: ["python", "javascript-typescript"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+      - uses: github/codeql-action/autobuild@v3
+      - uses: github/codeql-action/analyze@v3
