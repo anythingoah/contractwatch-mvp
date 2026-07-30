@@ -4,8 +4,22 @@
 Reads the token from the httpOnly auth cookie (how the frontend authenticates)
 and falls back to an `Authorization: Bearer` header (for scripts/CI/curl —
 useful since this product's own customers may want to script against it).
+
+Uses FastAPI's `Security`/`APIKeyCookie`/`HTTPBearer` classes to extract
+both, rather than parsing `Request` by hand — not just style. Declaring
+these as security schemes is what makes FastAPI mark protected routes as
+requiring auth in the generated OpenAPI schema, which is what puts the
+padlock icon + "Authorize" button on them in /docs. A hand-rolled
+`Request`-parsing version works identically at runtime but is invisible to
+the schema — every route silently looks public in `/docs` even though it
+isn't, which undercuts the "interactive docs" pitch in the README's API
+Documentation section. `auto_error=False` on both so a request with
+neither present falls through to our own `_extract_token`-equivalent
+check below and gets one consistent 401 message, instead of FastAPI's
+generic 403 firing on whichever scheme happens to be checked first.
 """
-from fastapi import Depends, HTTPException, status, Request
+from fastapi import Depends, HTTPException, status
+from fastapi.security import APIKeyCookie, HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -13,24 +27,16 @@ from app.core.config import settings
 from app.core.security import decode_access_token
 from app.models import User
 
-
-def _extract_token(request: Request) -> str | None:
-    cookie_token = request.cookies.get(settings.cookie_name)
-    if cookie_token:
-        return cookie_token
-
-    auth_header = request.headers.get("Authorization", "")
-    if auth_header.startswith("Bearer "):
-        return auth_header.removeprefix("Bearer ").strip()
-
-    return None
+cookie_scheme = APIKeyCookie(name=settings.cookie_name, auto_error=False)
+bearer_scheme = HTTPBearer(auto_error=False)
 
 
 def get_current_user(
-    request: Request,
+    cookie_token: str | None = Depends(cookie_scheme),
+    bearer: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     db: Session = Depends(get_db),
 ) -> User:
-    token = _extract_token(request)
+    token = cookie_token or (bearer.credentials if bearer else None)
     if token is None:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Not authenticated")
 
