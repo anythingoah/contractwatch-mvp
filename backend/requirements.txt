@@ -1,11 +1,20 @@
-fastapi==0.116.1
+fastapi>=0.116.1
 uvicorn[standard]==0.35.0
 sqlalchemy==2.0.35
-psycopg2-binary==2.9.10
+# psycopg (v3), not psycopg2-binary: psycopg2 is in maintenance-only mode
+# and its binary wheels lag new CPython releases significantly — on a
+# recent Python version this forces pip to build from source, which needs
+# PostgreSQL's pg_config installed locally (a bad first-run experience on
+# a fresh machine). psycopg3 is actively maintained and publishes wheels
+# for new Python versions much faster. Floor, not exact pin — same reason
+# as the fastapi/starlette note above: I can't verify exact available
+# versions from this sandbox (no network), so let pip's resolver (which
+# has real registry access) pick a valid one.
+psycopg[binary]>=3.2
 pydantic==2.9.2
 pydantic-settings==2.5.2
 email-validator==2.2.0
-python-jose[cryptography]==3.4.0
+PyJWT==2.9.0
 passlib[bcrypt]==1.7.4
 bcrypt>=4.0.0,<4.1.0
 python-multipart==0.0.31
@@ -18,3 +27,9 @@ alembic==1.13.2
 pytest==9.0.3
 tenacity==9.0.0
 prometheus-client==0.21.0
+# starlette is a transitive dependency of fastapi, deliberately NOT pinned
+# independently here — see README "Architecture Decisions" for why. Bumping
+# the fastapi floor is the correct lever for the starlette CVEs pip-audit
+# flagged; if the version pip resolves still shows the CVE, that means no
+# fastapi release yet requires a patched starlette, and the fix has to wait
+# on upstream fastapi rather than forcing an untested starlette version here.
