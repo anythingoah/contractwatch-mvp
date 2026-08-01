@@ -28,7 +28,7 @@ function getErrorDetail(body: unknown): string | null {
   return null;
 }
 
-async function request<T>(path: string, options: RequestInit = {}, timeoutMs = 15000): Promise<T> {
+async function request<T>(path: string, options: RequestInit = {}, timeoutMs =  60000): Promise<T> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
