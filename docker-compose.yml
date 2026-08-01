@@ -21,7 +21,7 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
-      DATABASE_URL: postgresql://contractwatch:contractwatch@db:5432/contractwatch
+      DATABASE_URL: postgresql+psycopg://contractwatch:contractwatch@db:5432/contractwatch
     ports:
       - "8000:8000"
     depends_on:
@@ -50,7 +50,7 @@ services:
     command: ["python", "worker.py"]
     env_file: .env
     environment:
-      DATABASE_URL: postgresql://contractwatch:contractwatch@db:5432/contractwatch
+      DATABASE_URL: ${DATABASE_URL}
     depends_on:
       db:
         condition: service_healthy
