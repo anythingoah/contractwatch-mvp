@@ -18,7 +18,7 @@ jobs:
       # time — DATABASE_URL is never actually connected to in tests (the db
       # dependency is overridden with in-memory SQLite, see conftest.py),
       # but the setting is required and fails fast if unset, same as prod.
-      DATABASE_URL: postgresql://test:test@localhost:5432/test
+      DATABASE_URL: "sqlite:///:memory:"
       JWT_SECRET: test-only-secret-not-for-production-use
     steps:
       - uses: actions/checkout@v4
