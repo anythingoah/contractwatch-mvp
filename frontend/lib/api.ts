@@ -91,6 +91,16 @@ export interface Change {
   created_at: string;
 }
 
+export interface RecentChange {
+  id: number;
+  monitor_id: number;
+  monitor_name: string;
+  change_type: string;
+  severity: "critical" | "warning" | "info";
+  summary: string;
+  created_at: string;
+}
+
 export interface CheckResult {
   status: string;
   changes_detected: number;
@@ -128,4 +138,5 @@ export const api = {
   deleteMonitor: (id: number) => request<null>(`/monitors/${id}`, { method: "DELETE" }),
   checkNow: (id: number) => request<CheckResult>(`/monitors/${id}/check`, { method: "POST" }),
   getChanges: (id: number) => request<Change[]>(`/monitors/${id}/changes`),
+  getRecentChanges: (limit = 20) => request<RecentChange[]>(`/monitors/changes?limit=${limit}`),
 };
