@@ -77,17 +77,40 @@ def create_monitor(db: Session, user: User, payload: MonitorCreate) -> Monitor:
     return monitor
 
 
-def list_monitors(db: Session, user: User) -> list[tuple[Monitor, int]]:
-    """Returns monitors with change counts in a single query (avoids N+1)."""
+def list_monitors(db: Session, user: User) -> list[tuple[Monitor, int, int]]:
+    """
+    Returns monitors with change counts and snapshot counts, one query, no N+1.
+
+    Uses correlated scalar subqueries rather than two outerjoins — joining
+    Monitor to both Change and Snapshot directly would multiply rows before
+    GROUP BY (e.g. 3 changes x 5 snapshots = 15 rows for one monitor),
+    giving wrong counts. Subqueries sidestep that entirely.
+    """
+    change_count_subq = (
+        db.query(func.count(Change.id))
+        .filter(Change.monitor_id == Monitor.id)
+        .correlate(Monitor)
+        .scalar_subquery()
+    )
+    snapshot_count_subq = (
+        db.query(func.count(Snapshot.id))
+        .filter(Snapshot.monitor_id == Monitor.id)
+        .correlate(Monitor)
+        .scalar_subquery()
+    )
+
     rows = (
-        db.query(Monitor, func.count(Change.id).label("change_count"))
-        .outerjoin(Change, Change.monitor_id == Monitor.id)
+        db.query(Monitor, change_count_subq.label("change_count"), snapshot_count_subq.label("snapshot_count"))
         .filter(Monitor.user_id == user.id)
-        .group_by(Monitor.id)
         .order_by(Monitor.created_at.desc())
         .all()
     )
-    return [(monitor, int(change_count)) for monitor, change_count in rows]
+    return [(monitor, int(change_count), int(snapshot_count)) for monitor, change_count, snapshot_count in rows]
+
+
+def get_snapshot_count(db: Session, monitor_id: int) -> int:
+    """Used by the single-monitor route — see routes.py get_monitor."""
+    return db.query(func.count(Snapshot.id)).filter(Snapshot.monitor_id == monitor_id).scalar() or 0
 
 
 def list_recent_changes(db: Session, user: User, limit: int) -> list[tuple[Change, int, str]]:

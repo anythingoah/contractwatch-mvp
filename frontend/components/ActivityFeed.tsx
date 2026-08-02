@@ -37,8 +37,13 @@ export function buildActivityFeed(monitors: Monitor[], changes: RecentChange[]):
     isBreaking: c.severity === "critical",
   }));
 
+  // snapshot_count === 1 means "checked exactly once, nothing to compare
+  // yet" — true right after the first check, and false forever after
+  // (the second check pushes it to 2 whether or not it found drift). That's
+  // what makes this stay accurate instead of re-labeling every routine
+  // no-op recheck as a fresh "baseline created" event.
   const baselineItems: ActivityItem[] = monitors
-    .filter((m) => m.change_count === 0 && m.last_checked)
+    .filter((m) => m.snapshot_count === 1 && m.change_count === 0 && m.last_checked)
     .map((m) => ({
       id: `baseline-${m.id}`,
       monitor_id: m.id,

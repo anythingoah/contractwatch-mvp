@@ -113,6 +113,10 @@ class MonitorResponse(BaseModel):
     last_checked: datetime | None
     created_at: datetime
     change_count: int = 0
+    # Lets the frontend distinguish "just got its first check" (snapshot_count == 1,
+    # nothing to compare yet) from "checked many times, happens to have zero drift" —
+    # both look identical via change_count alone. See ActivityFeed.tsx.
+    snapshot_count: int = 0
 
     model_config = ConfigDict(from_attributes=True)
 
