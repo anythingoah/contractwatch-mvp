@@ -22,11 +22,6 @@ services:
     env_file: .env
     environment:
       DATABASE_URL: postgresql+psycopg://contractwatch:contractwatch@db:5432/contractwatch
-      # Run the scheduler as a separate worker process by default to avoid
-      # duplicate scheduled checks when scaling API replicas. Set to "true"
-      # if you want the scheduler embedded in the API process (not recommended
-      # for multi-replica deployments).
-      RUN_SCHEDULER_IN_APP: "false"
     ports:
       - "8000:8000"
     depends_on:
@@ -45,9 +40,9 @@ services:
         condition: service_healthy
 
   # Optional: split the scheduler out of the API process. Only useful once
-  # you're running multiple `backend` replicas — RUN_SCHEDULER_IN_APP is false
-  # by default in this compose file so the worker runs separately to avoid
-  # duplicate checks. Run with: docker compose --profile worker up worker
+  # you're running multiple `backend` replicas — set RUN_SCHEDULER_IN_APP=false
+  # on the backend service(s) if you enable this, or checks fire twice.
+  # Run with: docker compose --profile worker up worker
   worker:
     build: ./backend
     restart: unless-stopped
