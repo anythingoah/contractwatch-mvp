@@ -26,6 +26,15 @@ from app.scheduler.jobs import start_scheduler, stop_scheduler
 configure_logging()
 logger = logging.getLogger("contractwatch.main")
 
+logger.info(
+    "ContractWatch API configured",
+    extra={
+        "cw_environment": settings.environment,
+        "cw_cookie_secure": settings.cookie_secure,
+        "cw_cors_origins": settings.cors_origin_list,
+    },
+)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

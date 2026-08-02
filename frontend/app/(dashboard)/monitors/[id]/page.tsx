@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { api, ApiError, Monitor, Change } from "@/lib/api";
 
@@ -25,12 +26,14 @@ export default function MonitorDetailPage() {
   const [checking, setChecking] = useState(false);
   const [error, setError] = useState("");
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (cancelled?: () => boolean) => {
     try {
       const [m, c] = await Promise.all([api.getMonitor(id), api.getChanges(id)]);
+      if (cancelled?.()) return;
       setMonitor(m);
       setChanges(c);
     } catch (err) {
+      if (cancelled?.()) return;
       if (err instanceof ApiError && err.status === 401) {
         router.push("/login");
         return;
@@ -40,9 +43,12 @@ export default function MonitorDetailPage() {
   }, [id, router]);
 
   useEffect(() => {
-    // The state updates occur after the external API requests resolve.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void load();
+    let cancelled = false;
+    const isCancelled = () => cancelled;
+    void load(isCancelled);
+    return () => {
+      cancelled = true;
+    };
   }, [load]);
 
   function handleRetry() {
@@ -76,6 +82,9 @@ export default function MonitorDetailPage() {
   if (!monitor) {
     return (
       <main className="max-w-3xl mx-auto px-6 py-10">
+        <Link href="/dashboard" className="text-sm text-muted hover:text-white mb-6 inline-block">
+          ← Back to monitors
+        </Link>
         {error ? (
           <div className="space-y-4">
             <p className="text-red-400">{error}</p>
@@ -90,6 +99,9 @@ export default function MonitorDetailPage() {
 
   return (
     <main className="max-w-3xl mx-auto px-6 py-10">
+      <Link href="/dashboard" className="text-sm text-muted hover:text-white mb-6 inline-block">
+        ← Back to monitors
+      </Link>
       {error && <p role="alert" className="text-red-400 text-sm mb-4">{error}</p>}
       <div className="flex items-center justify-between mb-8">
         <div>

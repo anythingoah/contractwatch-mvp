@@ -15,7 +15,9 @@ wiring specifically so they're testable without spinning up a real
 scheduler thread — see tests/test_scheduler.py.
 """
 import logging
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone, timedelta
+import threading
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
@@ -35,6 +37,11 @@ FREQUENCY_MINUTES = {
 }
 
 scheduler = BackgroundScheduler()
+
+# Prevent the same monitor from being checked concurrently if a tick overlaps
+# a long-running check from the previous tick.
+_in_progress_lock = threading.Lock()
+_in_progress_monitor_ids: set[int] = set()
 
 
 def _to_utc(dt: datetime) -> datetime:
@@ -68,6 +75,10 @@ def run_due_checks(db: Session, now: datetime | None = None) -> list[int]:
     for monitor in monitors:
         if not is_due(monitor, now):
             continue
+        with _in_progress_lock:
+            if monitor.id in _in_progress_monitor_ids:
+                continue
+            _in_progress_monitor_ids.add(monitor.id)
         try:
             run_check(db, monitor)
             scheduler_jobs_executed_total.inc()
@@ -77,6 +88,9 @@ def run_due_checks(db: Session, now: datetime | None = None) -> list[int]:
         except Exception:
             monitor_check_failed_total.labels(reason="exception").inc()
             logger.exception("Check failed", extra={"cw_monitor_id": monitor.id})
+        finally:
+            with _in_progress_lock:
+                _in_progress_monitor_ids.discard(monitor.id)
     return checked
 
 

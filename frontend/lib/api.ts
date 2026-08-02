@@ -20,10 +20,16 @@ function getErrorDetail(body: unknown): string | null {
   if (
     typeof body === "object" &&
     body !== null &&
-    "detail" in body &&
-    typeof body.detail === "string"
+    "detail" in body
   ) {
-    return body.detail;
+    const detail = body.detail;
+    if (typeof detail === "string") return detail;
+    if (Array.isArray(detail)) {
+      const first = detail[0];
+      if (typeof first === "object" && first !== null && "msg" in first && typeof first.msg === "string") {
+        return first.msg;
+      }
+    }
   }
   return null;
 }

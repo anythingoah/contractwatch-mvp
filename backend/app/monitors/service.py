@@ -5,6 +5,7 @@ This is the module that ties fetchers + diff_engine + alerts together.
 """
 import logging
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 
@@ -62,18 +63,49 @@ def create_monitor(db: Session, user: User, payload: MonitorCreate) -> Monitor:
         frequency=payload.frequency,
     )
     db.add(monitor)
-    db.flush()  # get monitor.id before adding channels
+    try:
+        db.flush()  # get monitor.id before adding channels
 
-    for ch in payload.channels:
-        db.add(AlertChannel(monitor_id=monitor.id, type=ChannelType(ch.type), configuration=ch.configuration))
+        for ch in payload.channels:
+            db.add(AlertChannel(monitor_id=monitor.id, type=ChannelType(ch.type), configuration=ch.configuration))
 
-    db.commit()
-    db.refresh(monitor)
+        db.commit()
+        db.refresh(monitor)
+    except Exception:
+        db.rollback()
+        raise
     return monitor
 
 
-def list_monitors(db: Session, user: User) -> list[Monitor]:
-    return db.query(Monitor).filter(Monitor.user_id == user.id).order_by(Monitor.created_at.desc()).all()
+def list_monitors(db: Session, user: User) -> list[tuple[Monitor, int]]:
+    """Returns monitors with change counts in a single query (avoids N+1)."""
+    rows = (
+        db.query(Monitor, func.count(Change.id).label("change_count"))
+        .outerjoin(Change, Change.monitor_id == Monitor.id)
+        .filter(Monitor.user_id == user.id)
+        .group_by(Monitor.id)
+        .order_by(Monitor.created_at.desc())
+        .all()
+    )
+    return [(monitor, int(change_count)) for monitor, change_count in rows]
+
+
+def list_recent_changes(db: Session, user: User, limit: int) -> list[tuple[Change, int, str]]:
+    """
+    Cross-monitor activity feed: the N most recent changes across every
+    monitor this user owns, newest first. Unlike list_changes (below),
+    this isn't scoped to one monitor_id — it's what powers the dashboard's
+    "recent activity" view.
+    """
+    rows = (
+        db.query(Change, Monitor.id, Monitor.name)
+        .join(Monitor, Monitor.id == Change.monitor_id)
+        .filter(Monitor.user_id == user.id)
+        .order_by(Change.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+    return [(change, monitor_id, monitor_name) for change, monitor_id, monitor_name in rows]
 
 
 def get_monitor(db: Session, user: User, monitor_id: int) -> Monitor:
@@ -85,18 +117,30 @@ def get_monitor(db: Session, user: User, monitor_id: int) -> Monitor:
 
 def delete_monitor(db: Session, user: User, monitor_id: int) -> None:
     monitor = get_monitor(db, user, monitor_id)
-    db.delete(monitor)
-    db.commit()
+    try:
+        db.delete(monitor)
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
 
 
-def list_changes(db: Session, user: User, monitor_id: int) -> list[Change]:
+def list_changes(
+    db: Session,
+    user: User,
+    monitor_id: int,
+    limit: int | None = None,
+    offset: int = 0,
+) -> list[Change]:
     get_monitor(db, user, monitor_id)  # ownership check
-    return (
+    query = (
         db.query(Change)
         .filter(Change.monitor_id == monitor_id)
         .order_by(Change.created_at.desc())
-        .all()
     )
+    if limit is not None:
+        query = query.limit(limit).offset(offset)
+    return query.all()
 
 
 def run_check(db: Session, monitor: Monitor) -> dict:
@@ -116,67 +160,75 @@ def run_check(db: Session, monitor: Monitor) -> dict:
     except FetchError as e:
         monitor.status = MonitorStatus.unreachable
         monitor.last_checked = datetime.now(timezone.utc)
-        db.commit()
+        try:
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
         logger.warning(
             "Monitor unreachable", extra={"cw_monitor_id": monitor.id, "cw_error": str(e)}
         )
         return {"status": "unreachable", "changes_detected": 0, "breaking": False}
 
-    new_hash = contract_hash(normalized)
-    previous = (
-        db.query(Snapshot)
-        .filter(Snapshot.monitor_id == monitor.id)
-        .order_by(Snapshot.created_at.desc())
-        .first()
-    )
+    try:
+        new_hash = contract_hash(normalized)
+        previous = (
+            db.query(Snapshot)
+            .filter(Snapshot.monitor_id == monitor.id)
+            .order_by(Snapshot.created_at.desc())
+            .first()
+        )
 
-    # Always store the snapshot — this is what "unlimited history" browses.
-    db.add(Snapshot(monitor_id=monitor.id, contract=normalized, hash=new_hash))
-    monitor.last_checked = datetime.now(timezone.utc)
+        # Always store the snapshot — this is what "unlimited history" browses.
+        db.add(Snapshot(monitor_id=monitor.id, contract=normalized, hash=new_hash))
+        monitor.last_checked = datetime.now(timezone.utc)
 
-    if previous is None:
-        # First ever check for this monitor — nothing to diff against yet.
-        monitor.status = MonitorStatus.healthy
+        if previous is None:
+            # First ever check for this monitor — nothing to diff against yet.
+            monitor.status = MonitorStatus.healthy
+            db.commit()
+            return {"status": "baseline_created", "changes_detected": 0, "breaking": False}
+
+        if previous.hash == new_hash:
+            # No structural change — cheap path, skip diffing entirely.
+            monitor.status = MonitorStatus.healthy
+            db.commit()
+            return {"status": "no_change", "changes_detected": 0, "breaking": False}
+
+        changes = diff_contracts(previous.contract, normalized)
+        severity = overall_severity(changes)
+        breaking = is_breaking(changes)
+
+        ai_explanation = explain_breaking_change(monitor.name, changes) if breaking else None
+
+        for c in changes:
+            details = {"old_value": c["old_value"], "new_value": c["new_value"], "path": c["path"]}
+            if ai_explanation and c["severity"] == "critical":
+                details["ai_explanation"] = ai_explanation
+            db.add(Change(
+                monitor_id=monitor.id,
+                change_type=c["type"],
+                severity=Severity(c["severity"]),
+                summary=c["message"],
+                details=details,
+            ))
+
+        monitor.status = MonitorStatus.breaking_change if breaking else MonitorStatus.healthy
         db.commit()
-        return {"status": "baseline_created", "changes_detected": 0, "breaking": False}
 
-    if previous.hash == new_hash:
-        # No structural change — cheap path, skip diffing entirely.
-        monitor.status = MonitorStatus.healthy
-        db.commit()
-        return {"status": "no_change", "changes_detected": 0, "breaking": False}
+        logger.info(
+            "Contract drift detected",
+            extra={
+                "cw_monitor_id": monitor.id,
+                "cw_severity": severity,
+                "cw_change_count": len(changes),
+                "cw_breaking": breaking,
+            },
+        )
 
-    changes = diff_contracts(previous.contract, normalized)
-    severity = overall_severity(changes)
-    breaking = is_breaking(changes)
+        dispatch_alerts(db, monitor, changes, severity)
 
-    ai_explanation = explain_breaking_change(monitor.name, changes) if breaking else None
-
-    for c in changes:
-        details = {"old_value": c["old_value"], "new_value": c["new_value"], "path": c["path"]}
-        if ai_explanation and c["severity"] == "critical":
-            details["ai_explanation"] = ai_explanation
-        db.add(Change(
-            monitor_id=monitor.id,
-            change_type=c["type"],
-            severity=Severity(c["severity"]),
-            summary=c["message"],
-            details=details,
-        ))
-
-    monitor.status = MonitorStatus.breaking_change if breaking else MonitorStatus.healthy
-    db.commit()
-
-    logger.info(
-        "Contract drift detected",
-        extra={
-            "cw_monitor_id": monitor.id,
-            "cw_severity": severity,
-            "cw_change_count": len(changes),
-            "cw_breaking": breaking,
-        },
-    )
-
-    dispatch_alerts(db, monitor, changes, severity)
-
-    return {"status": "changes_detected", "changes_detected": len(changes), "breaking": breaking}
+        return {"status": "changes_detected", "changes_detected": len(changes), "breaking": breaking}
+    except Exception:
+        db.rollback()
+        raise
