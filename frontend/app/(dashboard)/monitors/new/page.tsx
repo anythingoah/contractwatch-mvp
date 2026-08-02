@@ -36,12 +36,19 @@ export default function NewMonitorPage() {
   const router = useRouter();
 
   useEffect(() => {
+    let cancelled = false;
     api.me()
-      .then(setUser)
+      .then((data) => {
+        if (!cancelled) setUser(data);
+      })
       .catch((err) => {
+        if (cancelled) return;
         if (err instanceof ApiError && err.status === 401) router.push("/login");
         else setError(err instanceof ApiError ? err.message : "Failed to load account");
       });
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   async function handleSubmit(e: FormEvent) {

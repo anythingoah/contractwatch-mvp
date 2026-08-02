@@ -33,6 +33,11 @@ def enforce_rate_limit(request: Request) -> None:
     window_start = now - settings.auth_rate_limit_window_seconds
 
     with _lock:
+        # Drop stale IPs so the in-memory map cannot grow without bound.
+        stale_keys = [k for k, hits in _hits.items() if not hits or hits[-1] <= window_start]
+        for stale_key in stale_keys:
+            del _hits[stale_key]
+
         recent = [t for t in _hits[key] if t > window_start]
         if len(recent) >= settings.auth_rate_limit_requests:
             raise HTTPException(

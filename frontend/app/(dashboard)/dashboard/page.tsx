@@ -12,16 +12,25 @@ export default function DashboardPage() {
   const router = useRouter();
 
   useEffect(() => {
+    let cancelled = false;
     api.listMonitors()
-      .then(setMonitors)
+      .then((data) => {
+        if (!cancelled) setMonitors(data);
+      })
       .catch((err) => {
+        if (cancelled) return;
         if (err instanceof ApiError && err.status === 401) {
           router.push("/login");
           return;
         }
         setError(err instanceof ApiError ? err.message : "Failed to load monitors");
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   async function handleLogout() {

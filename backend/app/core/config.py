@@ -8,16 +8,20 @@ refuses to start) instead of silently running with a placeholder secret —
 that's a deliberate choice, not an oversight for the ones below with
 defaults, which are genuinely optional.
 """
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-INSECURE_JWT_SECRETS = {"change-me-in-prod", "secret", "changeme", ""}
+INSECURE_JWT_SECRET_MARKERS = {"replace_me", "changeme", "change-me", "placeholder", "example"}
+MIN_JWT_SECRET_LENGTH = 32
 
 
 class Settings(BaseSettings):
     # Core — required, no defaults. App won't start without these set.
     database_url: str
     jwt_secret: str
+
+    # development | production — controls production-only safety checks.
+    environment: str = "development"
 
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60 * 24 * 7  # 7 days
@@ -45,6 +49,10 @@ class Settings(BaseSettings):
     auth_rate_limit_requests: int = 5
     auth_rate_limit_window_seconds: int = 60
 
+    # Optional pagination defaults for list endpoints (clients may override).
+    default_page_limit: int = 100
+    max_page_limit: int = 500
+
     # Scheduler: set false when running the scheduler as a separate worker
     # process (see backend/worker.py) instead of embedded in the API process.
     # Must be false on every replica if you run more than one API instance,
@@ -57,15 +65,42 @@ class Settings(BaseSettings):
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 
+    @field_validator("environment")
+    @classmethod
+    def normalize_environment(cls, v: str) -> str:
+        normalized = v.strip().lower()
+        if normalized not in {"development", "production"}:
+            raise ValueError("ENVIRONMENT must be 'development' or 'production'")
+        return normalized
     @field_validator("jwt_secret")
     @classmethod
     def reject_insecure_jwt_secret(cls, v: str) -> str:
-        if v.strip().lower() in INSECURE_JWT_SECRETS:
+        normalized = v.strip().lower()
+        if not normalized or any(marker in normalized for marker in INSECURE_JWT_SECRET_MARKERS):
             raise ValueError(
-                "JWT_SECRET is missing or set to an insecure placeholder. "
+                "JWT_SECRET is missing or looks like a placeholder. "
                 "Set it to a long random string, e.g.: python -c \"import secrets; print(secrets.token_urlsafe(48))\""
             )
+        if len(v.strip()) < MIN_JWT_SECRET_LENGTH:
+            raise ValueError(
+                f"JWT_SECRET must be at least {MIN_JWT_SECRET_LENGTH} characters. "
+                "Generate one with: python -c \"import secrets; print(secrets.token_urlsafe(48))\""
+            )
         return v
+
+    @model_validator(mode="after")
+    def validate_production_settings(self):
+        if self.environment != "production":
+            return self
+        if any(origin.strip() == "*" for origin in self.cors_origins.split(",")):
+            raise ValueError("CORS_ORIGINS must not contain a wildcard (*) in production")
+        if not self.cookie_secure:
+            raise ValueError("COOKIE_SECURE must be true when ENVIRONMENT=production")
+        return self
+
+    @property
+    def is_production(self) -> bool:
+        return self.environment == "production"
 
 
 settings = Settings()

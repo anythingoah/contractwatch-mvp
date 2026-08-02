@@ -129,6 +129,24 @@ class ChangeResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class RecentChangeResponse(BaseModel):
+    """
+    Same shape as ChangeResponse, plus which monitor it belongs to — powers
+    the dashboard's cross-monitor activity feed. Built manually in the route
+    (not via model_validate/from_attributes), since monitor_name comes from
+    a join, not a Change attribute.
+    """
+    id: int
+    monitor_id: int
+    monitor_name: str
+    change_type: str
+    severity: str
+    summary: str
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class CheckResult(BaseModel):
     status: str
     changes_detected: int

@@ -14,6 +14,7 @@ import logging
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import SQLAlchemyError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.core.request_context import get_request_id
@@ -51,6 +52,22 @@ def register_exception_handlers(app: FastAPI) -> None:
         return JSONResponse(
             status_code=422,
             content={"detail": _safe_validation_errors(exc.errors()), "request_id": get_request_id()},
+        )
+
+    @app.exception_handler(SQLAlchemyError)
+    async def handle_database_error(request: Request, exc: SQLAlchemyError):
+        logger.error(
+            "Database error",
+            exc_info=exc,
+            extra={
+                "cw_request_id": get_request_id(),
+                "cw_method": request.method,
+                "cw_path": request.url.path,
+            },
+        )
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "Database error", "request_id": get_request_id()},
         )
 
     @app.exception_handler(Exception)
