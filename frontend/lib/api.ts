@@ -79,6 +79,7 @@ export interface Monitor {
   last_checked: string | null;
   created_at: string;
   change_count: number;
+  snapshot_count: number;
 }
 
 export interface Change {

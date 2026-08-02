@@ -22,9 +22,10 @@ def _clamp_pagination(limit: int | None, offset: int) -> tuple[int | None, int]:
 def list_monitors(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     rows = service.list_monitors(db, user)
     results = []
-    for monitor, change_count in rows:
+    for monitor, change_count, snapshot_count in rows:
         r = MonitorResponse.model_validate(monitor)
         r.change_count = change_count
+        r.snapshot_count = snapshot_count
         results.append(r)
     return results
 
@@ -62,6 +63,7 @@ def get_monitor(monitor_id: int, db: Session = Depends(get_db), user: User = Dep
     monitor = service.get_monitor(db, user, monitor_id)
     r = MonitorResponse.model_validate(monitor)
     r.change_count = len(monitor.changes)
+    r.snapshot_count = service.get_snapshot_count(db, monitor_id)
     return r
 
 
