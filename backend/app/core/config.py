@@ -59,6 +59,15 @@ class Settings(BaseSettings):
     # or checks will fire once per replica.
     run_scheduler_in_app: bool = True
 
+    frontend_url: str = "http://localhost:3000"
+
+    # Billing (Dodo Payments). Routes return 503 until configured.
+    dodo_payments_api_key: str | None = None
+    dodo_payments_webhook_key: str | None = None
+    dodo_payments_env: str = "test_mode"
+    dodo_product_id_developer: str | None = None
+    dodo_product_id_team: str | None = None
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     @property

@@ -55,6 +55,8 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     password_hash = Column(String, nullable=False)
     plan = Column(String, default="free", nullable=False)  # free | developer | team
+    dodo_customer_id = Column(String, nullable=True, unique=True, index=True)
+    subscription_status = Column(String, nullable=True)  # active | past_due | canceled | failed | None
     created_at = Column(DateTime(timezone=True), default=utcnow)
 
     monitors = relationship("Monitor", back_populates="owner", cascade="all, delete-orphan")

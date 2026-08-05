@@ -27,6 +27,7 @@ alembic==1.13.2
 pytest==9.0.3
 tenacity==9.0.0
 prometheus-client==0.21.0
+dodopayments>=1.90
 # starlette is a transitive dependency of fastapi, deliberately NOT pinned
 # independently here — see README "Architecture Decisions" for why. Bumping
 # the fastapi floor is the correct lever for the starlette CVEs pip-audit
