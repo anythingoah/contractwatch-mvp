@@ -70,6 +70,11 @@ export interface User {
   plan: string;
 }
 
+export interface SubscriptionInfo {
+  plan: string;
+  subscription_status: string | null;
+}
+
 export interface Monitor {
   id: number;
   name: string;
@@ -131,6 +136,11 @@ export const api = {
     request<User>("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }),
   logout: () => request<{ status: string }>("/auth/logout", { method: "POST" }),
   me: () => request<User>("/auth/me"),
+
+  createCheckout: (plan: "developer" | "team") =>
+    request<{ checkout_url: string }>("/billing/checkout", { method: "POST", body: JSON.stringify({ plan }) }),
+  getBillingPortal: () => request<{ portal_url: string }>("/billing/portal"),
+  getSubscription: () => request<SubscriptionInfo>("/billing/subscription"),
 
   listMonitors: () => request<Monitor[]>("/monitors"),
   getMonitor: (id: number) => request<Monitor>(`/monitors/${id}`),

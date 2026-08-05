@@ -20,6 +20,7 @@ from app.core.middleware import RequestContextMiddleware
 from app.core.exception_handlers import register_exception_handlers
 from app.core.metrics import render_metrics
 from app.auth.routes import router as auth_router
+from app.billing.routes import router as billing_router
 from app.monitors.routes import router as monitors_router
 from app.scheduler.jobs import start_scheduler, stop_scheduler
 
@@ -73,6 +74,7 @@ app.add_middleware(
 
 app.include_router(auth_router)
 app.include_router(monitors_router)
+app.include_router(billing_router)
 
 
 @app.get("/health")
