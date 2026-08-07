@@ -3,16 +3,37 @@ Fetches and parses an OpenAPI spec (JSON or YAML) from a URL.
 """
 import json
 import ipaddress
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 import httpx
 import yaml
 
 from app.fetchers.retry import with_transient_retry
+from app.core.outbound_urls import UnsafeOutboundUrl, assert_safe_public_http_url
 
 
 class FetchError(Exception):
     pass
+
+
+def _get_with_safe_redirects(url: str, timeout: float) -> httpx.Response:
+    """Fetch while checking the initial target and every redirect target."""
+    current_url = url
+    for _ in range(4):
+        try:
+            assert_safe_public_http_url(current_url)
+        except UnsafeOutboundUrl as exc:
+            raise FetchError(str(exc)) from exc
+        response = httpx.get(current_url, timeout=timeout, follow_redirects=False)
+        if response.is_redirect:
+            location = response.headers.get("location")
+            if not location:
+                raise FetchError("Redirect response did not include a location")
+            current_url = urljoin(current_url, location)
+            continue
+        response.raise_for_status()
+        return response
+    raise FetchError("Too many redirects while fetching OpenAPI spec")
 
 
 def _reject_private_targets(url: str) -> None:
@@ -36,9 +57,7 @@ def fetch_openapi_spec(spec_url: str, timeout: float = 15.0) -> dict:
 
     @with_transient_retry
     def _get() -> httpx.Response:
-        resp = httpx.get(spec_url, timeout=timeout, follow_redirects=True)
-        resp.raise_for_status()
-        return resp
+        return _get_with_safe_redirects(spec_url, timeout)
 
     try:
         resp = _get()

@@ -17,6 +17,7 @@ from app.core.config import settings
 from app.core.logging_config import configure_logging
 from app.core.security_headers import SecurityHeadersMiddleware
 from app.core.middleware import RequestContextMiddleware
+from app.core.request_limits import CookieOriginProtectionMiddleware, RequestBodyLimitMiddleware
 from app.core.exception_handlers import register_exception_handlers
 from app.core.metrics import render_metrics
 from app.auth.routes import router as auth_router
@@ -60,6 +61,8 @@ register_exception_handlers(app)
 # security headers, the routes themselves) logs under the same request_id.
 app.add_middleware(RequestContextMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RequestBodyLimitMiddleware)
+app.add_middleware(CookieOriginProtectionMiddleware)
 
 app.add_middleware(
     CORSMiddleware,

@@ -68,6 +68,8 @@ class MonitorCreate(BaseModel):
             raise ValueError("name cannot be empty")
         if len(v) > 100:
             raise ValueError("name must be 100 characters or fewer")
+        if any(ord(char) < 32 or ord(char) == 127 for char in v):
+            raise ValueError("name cannot contain control characters")
         return v
 
     @field_validator("type")

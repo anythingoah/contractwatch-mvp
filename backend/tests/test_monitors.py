@@ -51,6 +51,11 @@ def test_invalid_url_rejected(auth_client):
     assert resp.status_code == 422
 
 
+def test_monitor_name_with_control_characters_rejected(auth_client):
+    resp = auth_client.post("/monitors", json={**REST_PAYLOAD, "name": "safe\nBcc: attacker@example.com"})
+    assert resp.status_code == 422
+
+
 def test_invalid_frequency_rejected(auth_client):
     payload = {**REST_PAYLOAD, "frequency": "every_5_seconds"}
     resp = auth_client.post("/monitors", json=payload)

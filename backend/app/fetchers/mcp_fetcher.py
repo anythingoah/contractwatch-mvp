@@ -10,6 +10,7 @@ import httpx
 
 from app.fetchers.rest_fetcher import _reject_private_targets, FetchError
 from app.fetchers.retry import with_transient_retry
+from app.core.outbound_urls import UnsafeOutboundUrl, assert_safe_public_http_url
 
 
 def fetch_mcp_tools(server_url: str, transport: str = "http", timeout: float = 15.0) -> dict:
@@ -20,6 +21,10 @@ def fetch_mcp_tools(server_url: str, transport: str = "http", timeout: float = 1
         )
 
     _reject_private_targets(server_url)
+    try:
+        assert_safe_public_http_url(server_url)
+    except UnsafeOutboundUrl as exc:
+        raise FetchError(str(exc)) from exc
 
     payload = {
         "jsonrpc": "2.0",

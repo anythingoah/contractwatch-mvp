@@ -52,6 +52,7 @@ class Settings(BaseSettings):
     # Optional pagination defaults for list endpoints (clients may override).
     default_page_limit: int = 100
     max_page_limit: int = 500
+    max_request_body_bytes: int = 16 * 1024 * 1024  # 16 MiB
 
     # Scheduler: set false when running the scheduler as a separate worker
     # process (see backend/worker.py) instead of embedded in the API process.
