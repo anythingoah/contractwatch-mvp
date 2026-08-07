@@ -2,9 +2,9 @@ import Link from "next/link";
 import type { Monitor } from "@/lib/api";
 
 const BADGE_STYLES: Record<string, { label: string; className: string }> = {
-  healthy: { label: "healthy", className: "bg-green-500/15 text-green-400" },
-  breaking_change: { label: "breaking", className: "bg-red-500/15 text-red-400" },
-  unreachable: { label: "unreachable", className: "bg-yellow-500/15 text-yellow-400" },
+  healthy: { label: "healthy", className: "bg-success/15 text-success" },
+  breaking_change: { label: "breaking", className: "bg-danger/15 text-danger" },
+  unreachable: { label: "unreachable", className: "bg-signal-amber/15 text-signal-amber" },
   pending: { label: "pending", className: "bg-white/10 text-muted" },
 };
 
@@ -33,8 +33,8 @@ export default function MonitorsPanel({ monitors }: { monitors: Monitor[] }) {
           <Link
             key={m.id}
             href={`/monitors/${m.id}`}
-            className={`block bg-surface border rounded-xl p-4 hover:border-white/40 transition-colors ${
-              isBreaking ? "border-red-400/60" : "border-border"
+            className={`block bg-white/5 backdrop-blur-md border rounded-2xl p-4 hover:border-white/30 transition-colors ${
+              isBreaking ? "border-danger/60" : "border-border"
             }`}
           >
             <div className="flex items-center justify-between">

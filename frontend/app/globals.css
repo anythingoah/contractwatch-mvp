@@ -3,12 +3,12 @@
 @tailwind utilities;
 
 body {
-  @apply bg-bg text-white;
+  @apply bg-bg text-ink font-sans;
 }
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus {
   -webkit-text-fill-color: white;
-  -webkit-box-shadow: 0 0 0px 1000px #0a0a0b inset;
+  -webkit-box-shadow: 0 0 0px 1000px #090c10 inset;
   transition: background-color 5000s ease-in-out 0s;
 }

@@ -80,22 +80,22 @@ export default function NewMonitorPage() {
     }
   }
 
-  const inputClass = "w-full bg-bg border border-border rounded-md px-3 py-2 mb-3 text-sm";
+  const inputClass = "w-full bg-white/5 border border-border rounded-xl px-3 py-2 mb-3 text-sm focus:border-signal-blue transition-colors";
   const frequencies = FREQUENCIES[user?.plan ?? "free"] ?? FREQUENCIES.free;
 
   return (
     <main className="max-w-lg mx-auto px-6 py-10">
-      <h1 className="text-2xl font-semibold mb-6">New Monitor</h1>
-      {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
+      <h1 className="font-display text-2xl font-medium mb-6">New Monitor</h1>
+      {error && <p className="text-danger text-sm mb-4">{error}</p>}
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className="bg-white/5 backdrop-blur-md border border-border rounded-2xl p-6">
         <div className="flex gap-2 mb-4">
           <button type="button" onClick={() => setType("rest")}
-            className={`flex-1 py-2 rounded-md text-sm border ${type === "rest" ? "bg-white text-black" : "border-border text-muted"}`}>
+            className={`flex-1 py-2 rounded-full text-sm border transition-colors ${type === "rest" ? "bg-ink text-bg border-transparent" : "border-border text-muted hover:text-ink"}`}>
             REST Monitor
           </button>
           <button type="button" onClick={() => setType("mcp")}
-            className={`flex-1 py-2 rounded-md text-sm border ${type === "mcp" ? "bg-white text-black" : "border-border text-muted"}`}>
+            className={`flex-1 py-2 rounded-full text-sm border transition-colors ${type === "mcp" ? "bg-ink text-bg border-transparent" : "border-border text-muted hover:text-ink"}`}>
             MCP Monitor
           </button>
         </div>
@@ -127,8 +127,8 @@ export default function NewMonitorPage() {
         )}
 
         <label className="text-sm text-muted">Check Frequency</label>
-          <select className={inputClass} value={frequency} onChange={(e) => setFrequency(e.target.value as MonitorCreateInput["frequency"])}>
-            {frequencies.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+        <select className={inputClass} value={frequency} onChange={(e) => setFrequency(e.target.value as MonitorCreateInput["frequency"])}>
+          {frequencies.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
         </select>
 
         <p className="text-sm text-muted mt-4 mb-2">Alert channels</p>
@@ -154,8 +154,9 @@ export default function NewMonitorPage() {
             onChange={(e) => setWebhookUrl(e.target.value)} type="url" required />
         )}
 
-        <button type="submit" disabled={submitting} className="w-full bg-white text-black rounded-md py-2 font-medium text-sm mt-4 disabled:opacity-50">
-          {submitting ? "Creating monitor..." : "Create Monitor"}
+        <button type="submit" disabled={submitting}
+          className="w-full bg-ink text-bg rounded-full py-2 font-medium text-sm mt-4 disabled:opacity-50 hover:scale-[1.01] transition-transform">
+          {submitting ? "Creating monitor…" : "Create Monitor"}
         </button>
       </form>
     </main>

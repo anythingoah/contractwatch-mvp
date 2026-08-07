@@ -73,7 +73,7 @@ def test_missing_required_settings_raise_at_construction(monkeypatch):
     monkeypatch.delenv("DATABASE_URL", raising=False)
     monkeypatch.delenv("JWT_SECRET", raising=False)
     with pytest.raises(ValidationError):
-        Settings()  # no database_url, no jwt_secret — should fail, not silently default
+        Settings(_env_file=None)  # no database_url, no jwt_secret — should fail, not silently default
 
 def test_env_example_placeholder_is_rejected():
     """

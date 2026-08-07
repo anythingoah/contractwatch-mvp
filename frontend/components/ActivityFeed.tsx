@@ -63,7 +63,7 @@ export function buildActivityFeed(monitors: Monitor[], changes: RecentChange[]):
 export default function ActivityFeed({ items }: { items: ActivityItem[] }) {
   if (items.length === 0) {
     return (
-      <div className="text-center py-10 border border-dashed border-border rounded-xl">
+      <div className="text-center py-10 border border-dashed border-border rounded-2xl bg-white/[0.02]">
         <p className="text-muted text-sm">No activity yet.</p>
       </div>
     );
@@ -75,10 +75,10 @@ export default function ActivityFeed({ items }: { items: ActivityItem[] }) {
         <Link
           key={item.id}
           href={`/monitors/${item.monitor_id}`}
-          className={`block border-l-2 pl-3 ${item.isBreaking ? "border-red-400" : "border-border"}`}
+          className={`block border-l-2 pl-3 ${item.isBreaking ? "border-danger" : "border-border"}`}
         >
           <div className="flex items-center justify-between">
-            <span className={`text-sm font-semibold ${item.isBreaking ? "text-red-400" : ""}`}>
+            <span className={`text-sm font-medium ${item.isBreaking ? "text-danger" : ""}`}>
               {item.title}
             </span>
             <span className="text-xs text-muted whitespace-nowrap ml-4">{timeAgo(item.created_at)}</span>

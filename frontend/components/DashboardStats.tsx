@@ -7,17 +7,17 @@ export default function DashboardStats({ monitors }: { monitors: Monitor[] }) {
 
   return (
     <div className="grid grid-cols-3 gap-4 mb-10">
-      <div className="bg-surface border border-border rounded-xl p-6">
+      <div className="bg-white/5 backdrop-blur-md border border-border rounded-2xl p-6">
         <p className="text-sm text-muted mb-2">Healthy</p>
-        <p className="text-3xl font-semibold text-green-400">{healthy}</p>
+        <p className="text-3xl font-display font-medium text-success">{healthy}</p>
       </div>
-      <div className="bg-surface border border-border rounded-xl p-6">
+      <div className="bg-white/5 backdrop-blur-md border border-border rounded-2xl p-6">
         <p className="text-sm text-muted mb-2">Breaking</p>
-        <p className="text-3xl font-semibold text-red-400">{breaking}</p>
+        <p className="text-3xl font-display font-medium text-danger">{breaking}</p>
       </div>
-      <div className="bg-surface border border-border rounded-xl p-6">
+      <div className="bg-white/5 backdrop-blur-md border border-border rounded-2xl p-6">
         <p className="text-sm text-muted mb-2">Total monitors</p>
-        <p className="text-3xl font-semibold">{total}</p>
+        <p className="text-3xl font-display font-medium">{total}</p>
       </div>
     </div>
   );

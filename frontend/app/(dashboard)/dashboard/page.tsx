@@ -39,44 +39,25 @@ export default function DashboardPage() {
     };
   }, [router]);
 
-  async function handleLogout() {
-    setError("");
-    try {
-      await api.logout();
-      router.push("/login");
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to log out");
-    }
-  }
-
   return (
     <main className="max-w-5xl mx-auto px-6 py-10">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-2xl font-semibold">Dashboard</h1>
-        <div className="flex gap-3">
-          <Link href="/monitors/new" className="bg-white text-black px-4 py-2 rounded-md text-sm font-medium">
-            + New Monitor
-          </Link>
-          <button onClick={handleLogout} className="text-sm text-muted hover:text-white">
-            Log out
-          </button>
-        </div>
-      </div>
+      <h1 className="text-2xl font-display font-medium mb-8">Dashboard</h1>
 
-      {loading && <p className="text-muted">Loading...</p>}
-      {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
+      {loading && <p className="text-muted">Loading…</p>}
+      {error && <p className="text-danger text-sm mb-4">{error}</p>}
 
       {!loading && !error && monitors.length === 0 && (
-        <div className="text-center py-20 border border-dashed border-border rounded-xl">
+        <div className="text-center py-20 border border-dashed border-border rounded-2xl bg-white/[0.02]">
           <p className="text-muted mb-4">No monitors yet.</p>
-          <Link href="/monitors/new" className="text-white underline">Add your first monitor</Link>
+          <Link href="/monitors/new" className="text-signal-blue hover:text-signal-blue-hover underline">
+            Add your first monitor
+          </Link>
         </div>
       )}
 
       {!loading && !error && monitors.length > 0 && (
         <>
           <DashboardStats monitors={monitors} />
-
           <div className="grid grid-cols-3 gap-8">
             <div className="col-span-2">
               <h2 className="text-sm text-muted mb-4">Recent activity</h2>

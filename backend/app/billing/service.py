@@ -1,7 +1,8 @@
 """Dodo Payments integration and webhook reconciliation."""
 import logging
 
-from dodopayments import DodoPayments, WebhookVerificationError
+from dodopayments import DodoPayments
+from standardwebhooks.webhooks import WebhookVerificationError
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
