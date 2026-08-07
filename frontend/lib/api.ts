@@ -142,7 +142,13 @@ export const api = {
   getBillingPortal: () => request<{ portal_url: string }>("/billing/portal"),
   getSubscription: () => request<SubscriptionInfo>("/billing/subscription"),
 
-  listMonitors: () => request<Monitor[]>("/monitors"),
+  listMonitors: (limit?: number, offset?: number) => {
+    const params = new URLSearchParams();
+    if (limit !== undefined) params.set("limit", String(limit));
+    if (offset !== undefined) params.set("offset", String(offset));
+    const query = params.toString();
+    return request<Monitor[]>(`/monitors${query ? `?${query}` : ""}`);
+  },
   getMonitor: (id: number) => request<Monitor>(`/monitors/${id}`),
   createMonitor: (payload: MonitorCreateInput) =>
     request<Monitor>("/monitors", { method: "POST", body: JSON.stringify(payload) }),

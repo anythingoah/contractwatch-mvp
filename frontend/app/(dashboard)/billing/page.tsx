@@ -69,7 +69,7 @@ export default function BillingPage() {
     setPendingPlan(plan);
     try {
       const { checkout_url } = await api.createCheckout(plan);
-      window.location.href = checkout_url;
+      window.location.assign(checkout_url);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to start checkout");
       setPendingPlan(null);
@@ -81,7 +81,7 @@ export default function BillingPage() {
     setPortalLoading(true);
     try {
       const { portal_url } = await api.getBillingPortal();
-      window.location.href = portal_url;
+      window.location.assign(portal_url);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to open billing portal");
       setPortalLoading(false);

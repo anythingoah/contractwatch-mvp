@@ -92,6 +92,14 @@ def test_list_monitors_requires_auth(client):
     assert resp.status_code == 401
 
 
+def test_list_monitors_accepts_bounded_pagination(auth_client):
+    auth_client.post("/monitors", json=REST_PAYLOAD)
+    auth_client.post("/monitors", json={**REST_PAYLOAD, "name": "Second"})
+    assert len(auth_client.get("/monitors?limit=1&offset=0").json()) == 1
+    assert len(auth_client.get("/monitors?limit=1&offset=1").json()) == 1
+    assert auth_client.get("/monitors?limit=501").status_code == 422
+
+
 def test_users_cannot_see_each_others_monitors(client):
     client.post("/auth/signup", json={"email": "owner@example.com", "password": "password123"})
     created = client.post("/monitors", json=REST_PAYLOAD).json()

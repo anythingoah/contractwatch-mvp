@@ -45,7 +45,7 @@ export default function MonitorDetailPage() {
   useEffect(() => {
     let cancelled = false;
     const isCancelled = () => cancelled;
-    void load(isCancelled);
+    void Promise.resolve().then(() => load(isCancelled));
     return () => {
       cancelled = true;
     };

@@ -77,7 +77,7 @@ def create_monitor(db: Session, user: User, payload: MonitorCreate) -> Monitor:
     return monitor
 
 
-def list_monitors(db: Session, user: User) -> list[tuple[Monitor, int, int]]:
+def list_monitors(db: Session, user: User, limit: int, offset: int) -> list[tuple[Monitor, int, int]]:
     """
     Returns monitors with change counts and snapshot counts, one query, no N+1.
 
@@ -103,6 +103,8 @@ def list_monitors(db: Session, user: User) -> list[tuple[Monitor, int, int]]:
         db.query(Monitor, change_count_subq.label("change_count"), snapshot_count_subq.label("snapshot_count"))
         .filter(Monitor.user_id == user.id)
         .order_by(Monitor.created_at.desc())
+        .offset(offset)
+        .limit(limit)
         .all()
     )
     return [(monitor, int(change_count), int(snapshot_count)) for monitor, change_count, snapshot_count in rows]

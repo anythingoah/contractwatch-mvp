@@ -19,8 +19,13 @@ def _clamp_pagination(limit: int | None, offset: int) -> tuple[int | None, int]:
 
 
 @router.get("", response_model=list[MonitorResponse])
-def list_monitors(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    rows = service.list_monitors(db, user)
+def list_monitors(
+    limit: int = Query(default=settings.default_page_limit, ge=1, le=settings.max_page_limit),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    rows = service.list_monitors(db, user, limit=limit, offset=offset)
     results = []
     for monitor, change_count, snapshot_count in rows:
         r = MonitorResponse.model_validate(monitor)
