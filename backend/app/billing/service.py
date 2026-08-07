@@ -1,7 +1,7 @@
 """Dodo Payments integration and webhook reconciliation."""
 import logging
 
-from dodopayments import DodoPayments
+from dodopayments import DodoPayments, WebhookVerificationError
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -48,13 +48,25 @@ def create_portal_session(db: Session, user: User) -> str:
 
 
 def handle_webhook_event(db: Session, raw_body: bytes, headers: dict[str, str]) -> None:
+    client = _client()
     header_dict = {key: headers.get(key) for key in ("webhook-id", "webhook-timestamp", "webhook-signature")}
+
     try:
-        event = _client().webhooks.unwrap(
+        event = client.webhooks.unwrap(
             payload=raw_body.decode("utf-8"), headers=header_dict, key=settings.dodo_payments_webhook_key,
         )
-    except Exception as exc:
-        logger.warning("Webhook signature verification failed", extra={"cw_error": str(exc)})
+    except WebhookVerificationError as exc:
+        logger.warning(
+            "Webhook signature verification failed",
+            extra={
+                "cw_error_type": type(exc).__name__,
+                "cw_error": repr(exc),
+                "cw_body_length": len(raw_body),
+                "cw_body_preview": raw_body[:200].decode("utf-8", errors="replace"),
+                "cw_content_type": headers.get("content-type"),
+                "cw_content_encoding": headers.get("content-encoding"),
+            },
+        )
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid webhook signature") from exc
 
     event_dict = event.model_dump() if hasattr(event, "model_dump") else event.dict()
