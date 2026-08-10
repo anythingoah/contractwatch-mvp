@@ -1,11 +1,6 @@
 "use client";
 import { useRef, useState } from "react";
 import Link from "next/link";
-import { Space_Grotesk, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
-
-const display = Space_Grotesk({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-display" });
-const body = IBM_Plex_Sans({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-body" });
-const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-mono" });
 
 function ArrowIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -51,7 +46,7 @@ export default function LandingPage() {
   }
 
   return (
-    <div className={`cw-root ${display.variable} ${body.variable} ${mono.variable}`}>
+    <div className="cw-root">
       <style>{`
         .cw-root {
           --bg-deep: #090C10; --bg-mesh: #101826;
@@ -59,9 +54,6 @@ export default function LandingPage() {
           --signal-blue: #7C9CFF; --signal-blue-hover: #9DB4FF; --signal-amber: #F5B759;
           --success: #4ADE80; --danger: #F87171;
           --glass-fill: rgba(255,255,255,0.05); --glass-border: rgba(255,255,255,0.12);
-          --font-display: var(--font-display), ui-sans-serif, system-ui, sans-serif;
-          --font-body: var(--font-body), ui-sans-serif, system-ui, sans-serif;
-          --font-mono: var(--font-mono), ui-monospace, monospace;
           background: var(--bg-deep); color: var(--ink); font-family: var(--font-body);
           min-height: 100vh;
         }

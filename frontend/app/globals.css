@@ -2,6 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
+/* --font-display / --font-body / --font-mono are set by next/font on <html> in app/layout.tsx */
+
 body {
   @apply bg-bg text-ink font-sans;
 }

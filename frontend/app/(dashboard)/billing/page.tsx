@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api, ApiError, SubscriptionInfo } from "@/lib/api";
 import { buttonVariants } from "@/components/ui/Button";
@@ -29,7 +29,7 @@ const STATUS_LABEL: Record<string, string> = {
   failed: "Failed",
 };
 
-export default function BillingPage() {
+function BillingPageContent() {
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -99,10 +99,10 @@ export default function BillingPage() {
 
   return (
     <main className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
-      <h1 className="text-2xl font-semibold mb-8">Billing</h1>
+      <h1 className="font-display text-2xl font-medium mb-8">Billing</h1>
 
       {checkoutSuccess && (
-        <div className="rounded-xl border border-success-border bg-success-bg p-4 mb-8 flex items-center gap-2 text-sm text-success">
+        <div className="rounded-xl border border-success/30 bg-success/10 p-4 mb-8 flex items-center gap-2 text-sm text-success">
           <CheckCircleIcon className="h-4 w-4 shrink-0" />
           Checkout complete — your plan will update shortly.
         </div>
@@ -110,13 +110,13 @@ export default function BillingPage() {
 
       {loading && (
         <div aria-hidden="true" aria-busy="true" className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-          <div className="rounded-xl border border-border bg-surface p-6 h-40 animate-skeleton" />
-          <div className="rounded-xl border border-border bg-surface p-6 h-40 animate-skeleton" />
+          <div className="rounded-xl border border-border bg-surface p-6 h-40 animate-pulse" />
+          <div className="rounded-xl border border-border bg-surface p-6 h-40 animate-pulse" />
         </div>
       )}
 
       {!loading && error && (
-        <div role="alert" className="rounded-xl border border-danger-border bg-danger-bg p-6 text-center mb-8">
+        <div role="alert" className="rounded-xl border border-danger/30 bg-danger/10 p-6 text-center mb-8">
           <p className="text-danger text-sm mb-4">{error}</p>
           <button onClick={retry} className={buttonVariants({ variant: "outline", size: "sm" })}>
             Retry
@@ -182,5 +182,13 @@ export default function BillingPage() {
         </>
       )}
     </main>
+  );
+}
+
+export default function BillingPage() {
+  return (
+    <Suspense fallback={<main className="max-w-5xl mx-auto px-4 sm:px-6 py-10 text-muted">Loading…</main>}>
+      <BillingPageContent />
+    </Suspense>
   );
 }
