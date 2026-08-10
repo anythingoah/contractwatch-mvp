@@ -8,6 +8,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
+RUN chmod +x entrypoint.sh
 
 # No curl in this slim image — use Python's stdlib instead so we don't need
 # an extra apt package just for the healthcheck.
