@@ -17,7 +17,7 @@ psycopg[binary]>=3.2
 # SQLAlchemy/alembic don't fail with ModuleNotFoundError on startup.
 psycopg2-binary>=2.9
 pydantic==2.9.2
-pydantic-settings==2.5.2
+pydantic-settings==2.15.0
 email-validator==2.2.0
 PyJWT==2.13.0
 passlib[bcrypt]==1.7.4
