@@ -9,8 +9,6 @@ that's a deliberate choice, not an oversight for the ones below with
 defaults, which are genuinely optional.
 """
 
-import os
-
 from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -115,20 +113,6 @@ class Settings(BaseSettings):
     def is_production(self) -> bool:
         return self.environment == "production"
 
-def _normalise_database_url() -> str | None:
-    """Convert postgres:// → postgresql+psycopg:// for SQLAlchemy."""
-    url = os.getenv("DATABASE_URL")
-    if not url:
-        return None
-    for prefix in ("postgresql://", "postgres://"):
-        if url.startswith(prefix):
-            url = "postgresql+psycopg://" + url[len(prefix):]
-            break
-    return url
-
-_normalised = _normalise_database_url()
-if _normalised:
-    os.environ["DATABASE_URL"] = _normalised
 
 
 settings = Settings()
