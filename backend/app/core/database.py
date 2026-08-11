@@ -5,26 +5,35 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-# Get and fix the database URL
-raw_url = os.getenv("DATABASE_URL", "")
+# Build DATABASE_URL from individual Railway Postgres variables
+pg_user = os.getenv("PGUSER") or os.getenv("POSTGRES_USER")
+pg_password = os.getenv("PGPASSWORD") or os.getenv("POSTGRES_PASSWORD")
+pg_host = os.getenv("PGHOST") or os.getenv("POSTGRES_HOST")
+pg_port = os.getenv("PGPORT") or os.getenv("POSTGRES_PORT") or "5432"
+pg_db = os.getenv("PGDATABASE") or os.getenv("POSTGRES_DB")
 
-# Debug: Print what we're getting
-print(f"DEBUG - Raw DATABASE_URL: {raw_url}")
+# Debug: Print what we found
+print(f"DEBUG PG vars - USER:{pg_user} HOST:{pg_host} PORT:{pg_port} DB:{pg_db}")
 
-# Fix Railway's postgres:// to postgresql+psycopg://
-if raw_url.startswith("postgres://"):
+# Also try Railway's own DATABASE_URL as fallback
+raw_url = os.getenv("DATABASE_URL")
+
+if not raw_url and all([pg_user, pg_password, pg_host, pg_db]):
+    # Build from individual vars
+    raw_url = f"postgresql+psycopg://{pg_user}:{pg_password}@{pg_host}:{pg_port}/{pg_db}"
+elif raw_url and raw_url.startswith("postgres://"):
     raw_url = raw_url.replace("postgres://", "postgresql+psycopg://", 1)
-elif raw_url.startswith("postgresql://"):
+elif raw_url and raw_url.startswith("postgresql://"):
     raw_url = raw_url.replace("postgresql://", "postgresql+psycopg://", 1)
 
-# Fix empty port issue (like host:/dbname -> host:5432/dbname)
-if raw_url and ":/" in raw_url.split("@")[-1]:
-    raw_url = raw_url.replace(":/", ":5432/")
-
-print(f"DEBUG - Fixed DATABASE_URL: {raw_url}")
+print(f"DEBUG - Final URL: {raw_url[:50]}...") # Only print first 50 chars to avoid leaking password
 
 if not raw_url:
-    raise ValueError("DATABASE_URL is empty! Check Railway environment variables.")
+    raise ValueError(
+        "Cannot build DATABASE_URL! "
+        f"Found: PGUSER={pg_user}, PGHOST={pg_host}, PGPORT={pg_port}, PGDATABASE={pg_db}. "
+        "Check Railway Postgres service variables."
+    )
 
 engine = create_engine(raw_url, pool_pre_ping=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
