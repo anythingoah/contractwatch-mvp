@@ -16,7 +16,7 @@ psycopg[binary]>=3.2
 # ensures a PostgreSQL DBAPI driver is still available at runtime so
 # SQLAlchemy/alembic don't fail with ModuleNotFoundError on startup.
 psycopg2-binary>=2.9
-pydantic==2.9.2
+pydantic==2.13.4
 pydantic-settings==2.5.2
 email-validator==2.2.0
 PyJWT==2.13.0
