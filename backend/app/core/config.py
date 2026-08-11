@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     # Comma-separated list of allowed frontend origins. No wildcard default —
     # cookie-based auth requires an explicit origin, not "*", for the browser
     # to send credentials at all.
-    cors_origins: str = "http://localhost:3000"
+    cors_origins: str = "http://localhost:3000,https://contractwatch-mvp.vercel.app"
 
     # Cookie auth: set `cookie_secure=True` in production (requires HTTPS).
     cookie_name: str = "cw_token"
