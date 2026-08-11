@@ -1,23 +1,32 @@
 """
-SQLAlchemy engine/session setup. Simple, no async — MVP doesn't need it yet.
+SQLAlchemy engine/session setup.
 """
 import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-from app.core.config import settings
+# Get and fix the database URL
+raw_url = os.getenv("DATABASE_URL", "")
 
-# DEBUG: Print the actual URL (remove in production)
-print(f"DEBUG - Raw DATABASE_URL from settings: {settings.database_url}")
+# Debug: Print what we're getting
+print(f"DEBUG - Raw DATABASE_URL: {raw_url}")
 
-# Quick validation
-if not settings.database_url or settings.database_url.endswith(':/') or ':/@' in settings.database_url:
-    raise ValueError(
-        f"DATABASE_URL is malformed: '{settings.database_url}'. "
-        f"Check Railway variables."
-    )
+# Fix Railway's postgres:// to postgresql+psycopg://
+if raw_url.startswith("postgres://"):
+    raw_url = raw_url.replace("postgres://", "postgresql+psycopg://", 1)
+elif raw_url.startswith("postgresql://"):
+    raw_url = raw_url.replace("postgresql://", "postgresql+psycopg://", 1)
 
-engine = create_engine(settings.database_url, pool_pre_ping=True)
+# Fix empty port issue (like host:/dbname -> host:5432/dbname)
+if raw_url and ":/" in raw_url.split("@")[-1]:
+    raw_url = raw_url.replace(":/", ":5432/")
+
+print(f"DEBUG - Fixed DATABASE_URL: {raw_url}")
+
+if not raw_url:
+    raise ValueError("DATABASE_URL is empty! Check Railway environment variables.")
+
+engine = create_engine(raw_url, pool_pre_ping=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
