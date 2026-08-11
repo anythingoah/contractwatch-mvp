@@ -11,6 +11,11 @@ sqlalchemy==2.0.35
 # versions from this sandbox (no network), so let pip's resolver (which
 # has real registry access) pick a valid one.
 psycopg[binary]>=3.2
+# Fallback driver: if psycopg[binary] fails to install (e.g. build system
+# quirks with Railpack not resolving the psycopg3 binary wheel), this
+# ensures a PostgreSQL DBAPI driver is still available at runtime so
+# SQLAlchemy/alembic don't fail with ModuleNotFoundError on startup.
+psycopg2-binary>=2.9
 pydantic==2.9.2
 pydantic-settings==2.5.2
 email-validator==2.2.0
