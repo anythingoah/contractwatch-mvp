@@ -23,7 +23,7 @@ def _set_auth_cookie(response: Response, token: str) -> None:
         key=settings.cookie_name,
         value=token,
         httponly=True,
-        secure=True,
+        secure=settings.cookie_secure,
         samesite="none",
         max_age=settings.jwt_expire_minutes * 60,
         path="/",
