@@ -60,5 +60,8 @@ def client(db_session):
 @pytest.fixture()
 def auth_client(client):
     """A TestClient that's already signed up and logged in (cookie set)."""
-    client.post("/auth/signup", json={"email": "test@example.com", "password": "password123"})
+    # Signup to create the user and get the auth cookie
+    resp = client.post("/auth/signup", json={"email": "test@example.com", "password": "password123"})
+    assert resp.status_code == 200, f"Signup failed: {resp.status_code} - {resp.text}"
+    # The TestClient automatically stores and sends cookies for subsequent requests
     return client
